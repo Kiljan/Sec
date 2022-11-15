@@ -1,4 +1,4 @@
-My own notes about cybersecurity.
+My own notes about Cybersecurity.
 
 
 
