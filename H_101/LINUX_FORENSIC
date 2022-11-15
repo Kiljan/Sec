@@ -1,0 +1,156 @@
+# Linux and disk forensics
+https://resources.infosecinstitute.com/topic/linux-and-disk-forensics/
+    -> https://www.sleuthkit.org/autopsy/
+
+# ==============================================================================================================================
+# basic-forensic-methodology
+
+# Information Gathering
+    date                                    # only informational (mess up logs, no backup, app problems)
+    rpm -qa                                 # Search installed programs
+    rpm -Va                                 # Search modified System Files
+    uname -a                                # OS info
+    env                                     # enviromental variables
+    ip a                                    # Network interfaces (promiscuous mode?)
+    ps -aux                                 # Running processes SEE MAN PAGE EXAMPLES !!!
+    ps -aef --forest                        # Running processes with directory tree SEE MAN PAGE EXAMPLES !!!
+    ss -tulpn                               # Proccess and ports
+    lsof -V                                 # Open files
+    route                                   # Routing table
+    df -hT                                  #Free space and mounted devices
+    free                                    # Meam and swap space
+    w                                       # Who is connected
+    last -Faiwx                             # Logins
+    netstat -ano                            # Connections
+    lsof +L1                                # file delated but in memory still
+    lsmod                                   # What is loaded
+    cat /etc/passwd                         # Unexpected data?
+    cat /etc/shadow                         # Unexpected data?
+    find /directory -type f -mtime -1 -print # Find modified files during the last minute in the directory
+    dmesg                                   # hardware device and driver messages from the kernel’s own ring buffer
+    journalctl                              # for systemd search
+    ls -lahtiR                              # power search for catalogs
+
+# Inspect Scheduled Tasks
+/var/spool/cron/crontabs/*  
+/var/spool/cron/atjobs 
+/var/spool/anacron 
+/etc/cron* 
+/etc/at* 
+/etc/anacrontab 
+/etc/incron.d/* 
+/var/spool/incron/* 
+
+# Inspect Services
+/etc/inittab
+/etc/rc.d/
+/etc/rc.boot/
+/etc/init.d/
+/etc/inetd.conf
+/etc/xinetd/
+/etc/systemd/system
+/etc/systemd/system/multi-user.target.wants/
+
+# Inspect Kernel Modules
+/lib/modules/'uname -r'
+/etc/modprobe.d/*
+/etc/modprobe
+/etc/modprobe.conf
+
+# Inspect Other Autostart Locations
+/etc/profile.d/* 
+/etc/profile 
+/etc/bash.bashrc 
+∼/.bashrc
+∼/.bash_profile
+~/.profile
+∼/.config/autostart 
+/etc/rc.local
+
+# Inspect Logs
+/var/log/*
+/var/log/syslog (debian)
+/var/log/messages (Redhat)
+/var/log/auth.log (debian) 
+/var/log/secure (Redhat)
+/var/log/boot.log
+/var/log/maillog
+var/log/mail.log
+/var/log/faillog
+/var/log/cron
+/var/log/btmp # keeps a note of all failed login attempts
+/var/log/httpd/
+/var/log/mysqld.log
+/var/log/mysql.log
+/var/log/mariadb/mariadb.log
+/var/log/mysql/error.log
+/var/log/xferlog # keeps FTP file transfer sessions. Includes info like file names and user-initiated FTP transfers
+
+# Inspect Command History
+~/.bash_history
+~/.history
+~/.sh_history
+~/.*_history
+
+# Inspect Application Traces
+∼/.ssh/authorized_keys 
+∼/.ssh/known_keys
+∼/.recently-used.xbel # file that contains information about files that were recently accessed using applications running on the Gnome desktop
+∼/.viminfo
+∼/.mysql_history
+∼/.lesshst 
+
+# Review User Accounts and Logon Activities
+/etc/passwd
+/etc/shadow
+/etc/sudoers
+/etc/groups
+
+# Examine File System
+/dev # used to be special files, you may find non-special files here related to malware
+find / -user root -perm -04000 –print
+/etc/fstab
+df -hT
+
+# Create a raw copy of the disk. Raw copy with hashes along the way (more secure as it checks hashes while it's copying the data)
+    dd if=<subject device> of=<image file> bs=512
+    dd if=/dev/sdc of=/media/usb/disk.image  bs=512
+
+# Image pre-analysis
+    # Find out if it's a disk image using "file" command
+    file disk.img 
+
+    # Check which type of disk image it's
+    img_stat -t evidence.img 
+        # You can list supported types with
+        img_stat -i list
+        raw (Single or split raw file (dd))
+        aff (Advanced Forensic Format)
+        afd (AFF Multiple File)
+        afm (AFF with external metadata)
+        afflib (All AFFLIB image formats (including beta ones))
+        ewf (Expert Witness Format (EnCase))
+
+    # Data of the image
+    fsstat -i raw -f ext4 disk.img 
+
+    # ls inside the image
+    fls -i raw -f ext4 disk.img
+        d/d 11: lost+found
+        d/d 12: Documents
+
+    #ls inside folder
+    fls -i raw -f ext4 disk.img 12
+        r/r 16: secret.txt
+
+    #cat file inside image
+    icat -i raw -f ext4 disk.img 16
+        ThisisTheMasterSecret
+
+
+# Recover Deleted Running Binaries
+    ps -ef | grep [nazwa pliku]
+    # and I can tray retrive from process proc
+    cd /proc/[process number]
+    head -1 maps
+    # search for recover file location
