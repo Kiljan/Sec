@@ -11,19 +11,20 @@ urlData = "https://services.nvd.nist.gov/rest/json/cues2.0?cveId=" + cve_to_chec
 jsonData = getResponse(urlData)
 
 cve_id= ""
-cve_description = table_contents []
+cve_description = ""
+table_contents []
 attackVector = ""
 attackComplexity = ""
 privilegesRequired = ""
 userInteraction = ""
 confidentialityImpact = ""
-IntegrityImpact = ""
+integrityImpact = ""
 availabilityImpact = ""
 baseScore = ""
-baseSeverity = cc
+baseSeverity = ""
 
 for i in jsonData["vulnerabilities"]:
-   cve_id = i["cve"]["id"]
+   cve_id = cve_to_check
    for j in i ["cve"]["references"]:
       table_contents.append("url": j["url"], "source": j["source"]})
    for k in i["cve"]["descriptions"]:
@@ -43,19 +44,25 @@ for i in jsonData["vulnerabilities"]:
 template = DocxTemplate('cveTemplateUP.docx)
 
 context = {
-title: cve 10,
+'title': cve 10,
 'day': datetime.datetime.now().strftime("%d"),
-'month': datetime.datetime.now().strftime("X"), "year": datetime.datetime.now().strftime("Y"), 'table_contents': table_contents,
-'cve_description': cve_description, 'attackVector': attackVector,
+'month': datetime.datetime.now().strftime("X"), 
+'year': datetime.datetime.now().strftime("Y"), 
+'table_contents': table_contents,
+'cve_description': cve_description, 
+'attackVector': attackVector,
 'attackComplexity': attackComplexity,
-'privilegesRequired': privilegesRequired, 'userInteraction': userInteraction,
+'privilegesRequired': privilegesRequired, 
+'userInteraction': userInteraction,
 'confidentialityImpact': confidentialityImpact,
 'integrityImpact': integrityImpact,
-'availabilityImpact': availabilityImpact, 'baseScore': baseScore,
+'availabilityImpact': availabilityImpact, 
+'baseScore': baseScore,
 'baseSeverity': baseSeverity
 }
 
-template.render(context) template.save("generated report.docx")
+template.render(context) 
+template.save("generated report.docx")
 
 def getResponse(url):
    openUrl = urllib.request.urlopen(url)
