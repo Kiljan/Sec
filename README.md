@@ -1,3 +1,11 @@
+# PENETRATION_TEST
+
+```bash
+ > "Remember, hacking isn’t a race; it’s a test of will, patience, and preparation"
+ > 
+ > "follow the white rabbit....."
+```
+
 - [PENETRATION\_TEST](#penetration_test)
   - [PASSIVE\_IG](#passive_ig)
     - [Google\_Hacking](#google_hacking)
@@ -34,14 +42,6 @@
     - [NETCAT FILE TRANSFER AND REMOTE ADMINISTRATION](#netcat-file-transfer-and-remote-administration)
     - [DHCP ISSUES](#dhcp-issues)
     - [NETWORK AUTHORITIES](#network-authorities)
-
-# PENETRATION_TEST
-
-```bash
- > "Remember, hacking isn’t a race; it’s a test of will, patience, and preparation"
- > 
- > "follow the white rabbit....."
-```
 
 ## PASSIVE_IG
 
@@ -156,7 +156,7 @@
 
 ### Theharvester
 
-1. The objective of this program is to gather emails, subdomains, hosts, employee names, open ports and banners from different public sources like search engines, PGP key servers and SHODAN computer database. A tool for gathering e-mail accounts and subdomain names from public sources.<br>This tool is intended to help Penetration Testers in the early stages of the penetration test in order to understand the customer footprint on the Internet. It is also useful for anyone that wants to know what an attacker can see about their organization.
+1. The objective of this program is to gather emails, subdomains, hosts, employee names, open ports and banners from different public sources like search engines, PGP key servers and SHODAN computer database. A tool for gathering e-mail accounts and subdomain names from public sources. It is useful for anyone who wants to know what an attacker can see about their organization.
 
 1. Examples
    1. Search from email addresses from a domain (-d kali.org), limiting the results to 500 (-l 500), using Google (-b google)
@@ -182,7 +182,7 @@
 1. Check web in <https://www.netcraft.com/>
 1. If I have an IP address and want to know who it belongs to <http://whois.domaintools.com/>
 1. Go to the company web page, for simplicity I can download all and crawl by use of <https://www.httrack.com/> or <https://blackwidow.en.softonic.com/>
-<br>__CAUTION!! Some web application data can be deleted in response to an information grab__
+```CAUTION!! Some web application data can be deleted in response to an information grab```
 1. Go to <https://archive.org/>
 1. Go to different online resources with google search
 1. linkedin.com, pipl.com for user information
@@ -485,7 +485,7 @@ Based on response from DNS server it identify if the host exist or not. Dnsrecon
     tcpdump port 1337 and host 1.2.3.4  
     ```
   
-7. How long are the TCP connections on this box listing right now ? <br>_Resoult file analyze by WIRESHARK_
+7. How long are the TCP connections on this box listing right now ? ```Resoult file analyze by WIRESHARK```
 
     ```bash
     tcpdump -c 10000 -w packets.pcap
@@ -1165,6 +1165,21 @@ Gaining Access, Escalating Privileges, Executing Applications, Hiding Files, Cov
 1. Encrypted Communication. Anwsers the question how to transport data securely and safely
    1. Secure Shell (SSH)
    1. Secure Sockets Layer (SSL). This encrypts data at the transport layer, and above, for secure communication across the Internet. It uses RSA encryption and digital certificates and can be used with a wide variety of upper-layer protocols. SSL uses a six-step process for securing a channel. It is being largely replaced by Transport Layer Security (TLS).
+      1. Possible standards:
+         1. __.csr__ - This is a Certificate Signing Request. Some applications can generate these for submission to certificate-authorities. The actual format is PKCS10 which is defined in RFC 2986. It includes some/all of the key details of the requested certificate such as subject, organization, state, whatnot, as well as the public key of the certificate to get signed. These get signed by the CA and a certificate is returned. The returned certificate is the public certificate (which includes the public key but not the private key), which itself can be in a couple of formats.
+         1. __.pem__ - Defined in RFC 1422 (part of a series from 1421 through 1424) this is a container format that may include just the public certificate (such as with Apache installs, and CA certificate files /etc/ssl/certs), or may include an entire certificate chain including public key, private key, and root certificates. Confusingly, it may also encode a CSR as the PKCS10 format can be translated into PEM. The name is from Privacy Enhanced Mail (PEM), a failed method for secure email but the container format it used lives on, and is a base64 translation of the x509 ASN.1 keys.
+         1. __.key__ - This is a (usually) PEM formatted file containing just the private-key of a specific certificate and is merely a conventional name and not a standardized one. In Apache installs, this frequently resides in /etc/ssl/private. The rights on these files are very important, and some programs will refuse to load these certificates if they are set wrong.
+         1. __.pkcs12 .pfx .p12__ - Originally defined by RSA in the Public-Key Cryptography Standards (abbreviated PKCS), the "12" variant was originally enhanced by Microsoft, and later submitted as RFC 7292. This is a password-protected container format that contains both public and private certificate pairs. Unlike .pem files, this container is fully encrypted. Openssl can turn this into a .pem file with both public and private keys: openssl pkcs12 -in file-to-convert.p12 -out converted-file.pem -nodes
+         1. __.der__ - A way to encode ASN.1 syntax in binary, a .pem file is just a Base64 encoded .der file. OpenSSL can convert these to .pem (openssl x509 -inform der -in to-convert.der -out converted.pem). Windows sees these as Certificate files. By default, Windows will export certificates as .DER formatted files with a different extension.
+         1. __.cert .cer .crt__ - A .pem (or rarely .der) formatted file with a different extension, one that is recognized by Windows Explorer as a certificate, which .pem is not.
+         1. __.p7b .keystore__ - Defined in RFC 2315 as PKCS number 7, this is a format used by Windows for certificate interchange. Java understands these natively, and often uses .keystore as an extension instead. Unlike .pem style certificates, this format has a defined way to include certification-path certificates.
+         1. __.crl__ - A certificate revocation list. Certificate Authorities produce these as a way to de-authorize certificates before expiration. You can sometimes download them from CA websites.
+      1. In summary, there are four different ways to present certificates and their components:
+         1. __PEM__ - Governed by RFCs, used preferentially by open-source software because it is text-based and therefore less prone to translation/transmission errors. It can have a variety of extensions (.pem, .key, .cer, .cert)
+         1. __PKCS7__ - An open standard used by Java and supported by Windows. Does not contain private key material.
+         1. __PKCS12__ - A Microsoft private standard that was later defined in an RFC that provides enhanced security versus the plain-text PEM format. This can contain private key and certificate chain material. Its used preferentially by Windows systems, and can be freely converted to PEM format through use of openssl.
+         1. __DER__ - The parent format of PEM. It's useful to think of it as a binary version of the base64-encoded PEM file. Not routinely used very much outside of Windows.
+
    1. Transport Layer Security (TLS). Using an RSA algorithm of 1024 and 2048 bits, TLS is the successor to SSL. The handshake portion (TLS Handshake Protocol) allows both the client and the server to authenticate to each other, and TLS Record Protocol provides the secured communication channel.
    1. Internet Protocol Security (IPSec). This is a network layer tunneling protocol that can be used in two modes: tunnel (entire IP packet encrypted) and transport (data payload encrypted). IPSec is capable of carrying nearly any application. The Authentication Header (AH) protocol verifies an IP packet’s integrity and determines the validity of its source: it provides authentication and integrity, but not confidentiality. Encapsulating Security Payload (ESP) encrypts each packet (in transport mode, the data is encrypted but the headers are not encrypted; in tunnel mode, the entire packet, including the headers, is encrypted).
    1. PGP. Pretty Good Privacy was created way back in 1991 and is used for signing, compression, and encrypting and decrypting e-mails, files, directories, and even whole disk partitions, mainly in an effort to increase the security of e-mail communications. PGP follows the OpenPGP standard (RFC 4880) for encrypting and decrypting data. PGP is known as a hybrid cryptosystem, because it uses features of conventional and public key cryptography.
@@ -1201,12 +1216,12 @@ Gaining Access, Escalating Privileges, Executing Applications, Hiding Files, Cov
         tcp.analysis.rto >= 0.050
         ```
 
-1. Examination of Application Layer Sessions. Once you have several packets showing HTTP, select one and then <br>=> select Analyze => Follow => HTTP Stream from the drop-down menu <br>This will show you an assembled HTTP session. In this new window, you see the HTTP request from the browser and HTTP response from the web server.
+1. Examination of Application Layer Sessions. Once you have several packets showing HTTP, select one and then ```=> select Analyze => Follow => HTTP Stream from the drop-down menu``` This will show you an assembled HTTP session. In this new window, you see the HTTP request from the browser and HTTP response from the web server.
 1. I can find Display Filter Reference on page: <https://www.wireshark.org/docs/dfref/h/http.html>
 1. View Telnet sessions I can simply use a filter _telnet_
 1. View SMTP or POP3 traffic I can simplyuse filter _smtp_
  or _pop3_
-1. Extract files from PCAP using Export (HTTP or SMB) <br>=> File => Export Objects => HTTP <br>The new Window will show any files that were found. In this new Window I can save the individual files or save them all to a folder.<br>A similar method can be used to extract files from SMB sessions. This is the Microsoft Server Message Block protocol that allows Windows File Sharing.<br>=> File => Export Objects => SMB
+1. Extract files from PCAP using Export (HTTP or SMB) ```=> File => Export Objects => HTTP``` The new Window will show any files that were found. In this new Window I can save the individual files or save them all to a folder. A similar method can be used to extract files from SMB sessions. This is the Microsoft Server Message Block protocol that allows Windows File Sharing ```=> File => Export Objects => SMB```
 
 ## NOTES
 
@@ -1326,8 +1341,7 @@ It is a python GUI application which simplifies network infrastructure penetrati
     1. In the top Wireshark packet list pane, select the first DHCP packet, labeled DHCP Request.
     1. Observe the packet details in the middle Wireshark packet details pane. Notice that it is an Ethernet II / Internet Protocol Version 4 / User Datagram Protocol / Bootstrap Protocol frame.
     1. Expand Ethernet II to view Ethernet details.
-    1. Observe the Destination and Source fields. The destination should be your DHCP server's MAC address and the source should be your MAC address. To confirm You can use:
-        > ipconfig /all <br>and<br> arp -a
+    1. Observe the Destination and Source fields. The destination should be your DHCP server's MAC address and the source should be your MAC address. To confirm You can use:```> ipconfig /all``` and ```arp -a```
     1. Expand Internet Protocol Version 4 to view IP details.
     1. Observe the Source address. Notice that the source address is your IP address.
     1. Observe the Destination address. Notice that the destination address is the IP address of the DHCP server.
@@ -1357,7 +1371,7 @@ It is a python GUI application which simplifies network infrastructure penetrati
     1. In the top Wireshark packet list pane, select the third DHCP packet, labeled DHCP Release.
     1. Observe the packet details in the middle Wireshark packet details pane. Notice that it is an Ethernet II / Internet Protocol Version 4 / User Datagram Protocol / Bootstrap Protocol frame.
     1. Expand Ethernet II to view Ethernet details.
-    1. Observe the Destination and Source fields. The destination should be your DHCP server's MAC address and the source should be your MAC address. To confirm You can use:<br>=> ipconfig /all <br>and<br>arp -a
+    1. Observe the Destination and Source fields. The destination should be your DHCP server's MAC address and the source should be your MAC address. To confirm You can use:```> ipconfig /all``` and ```arp -a```
     1. Expand Internet Protocol Version 4 to view IP details.
     1. Observe the Source address. Notice that the source address is your IP address.
     1. Observe the Destination address. Notice that the destination address is the IP address of the DHCP server.
