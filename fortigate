@@ -1,0 +1,19 @@
+----------------------------------------------------------------------------
+1. Never allow Http management access to firewall from any place.
+2. Change the default ports on the firewall.
+3. Configure trusted host on all admin account (trusted host is a security feature under the users menu that allows to define from which IP addresses the users are allowed to log in).
+4. Configuring Fortigate Captive Portals == set restriction to network usage by a user.
+5. Secure FortiGate on the edge == set a lockout threshold and a lockout interval (next login after x minutes avaiable prevent brute force attacks).
+6. Change default name for admin account
+7. Put a legal message warning
+
+----------------------------------------------------------------------------
+Kill process on FortiGate
+$ get system perf top
+
+$ diagnose system kill 11 <process_service_ID>
+
+----------------------------------------------------------------------------
+Check VPN status (only from cli)
+$ get vpn ipsec tunnel summary
+----------------------------------------------------------------------------
